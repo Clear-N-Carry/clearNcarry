@@ -2101,28 +2101,17 @@ body.dark-mode .hood-card{background:var(--surface)}
     </div>
 
     <!-- CLOUD SYNC -->
-    <div class="s-section">
+        <div class="s-section">
       <div class="s-section-title">Cloud Sync</div>
-      <div class="s-row" style="align-items:flex-start;padding-bottom:12px">
+      <div class="s-row">
         <div class="s-row-info">
-          <div class="s-row-label">Auto-sync on save</div>
-          <div class="s-row-sub">Push to Google Sheets after every save</div>
+          <div class="s-row-label">Google Sheets sync</div>
+          <div class="s-row-sub">Configure your sync URL and push/pull data</div>
         </div>
-        <div class="s-row-ctrl"><label class="sw"><input type="checkbox" id="set-autosync" onchange="applyMktSettings()" checked><span class="sw-track"></span></label></div>
+        <div class="s-row-ctrl">
+          <button class="sm-btn" onclick="closeSettings();showTab('sync')" style="font-size:12px">Open Sync tab &#8594;</button>
+        </div>
       </div>
-      <div style="margin-bottom:10px">
-        <label class="form-label">Apps Script URL</label>
-        <input class="form-input" id="set-sheets-url" placeholder="https://script.google.com/macros/s/..." style="margin-bottom:8px">
-        <label class="form-label">Sync Secret Key</label>
-        <input class="form-input" id="set-sheets-key" placeholder="Your secret key">
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <button class="sm-btn" onclick="saveMktSyncConfig()" style="background:var(--green);color:#fff;border-color:var(--green)">Save Config</button>
-        <button class="sm-btn" onclick="pushToSheets()">&#8645; Push to Sheets</button>
-        <button class="sm-btn" onclick="pullFromSheets()">&#8595; Pull from Sheets</button>
-      </div>
-      <div id="set-sync-msg" style="font-size:12px;min-height:14px;margin-top:8px"></div>
-      <div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:11px;color:var(--muted)" id="set-sync-log"></div>
     </div>
 
     <!-- DATA & BACKUP -->
@@ -4403,6 +4392,12 @@ document.addEventListener('DOMContentLoaded',function(){
     if(hrs>0.25)syncToSheets(true);   // sync on load if last sync > 15 min ago
     else setSyncIndicator('ok');
   }
+  // Restore sync config into tab form fields
+  var syncCfg = getSheetsConfig();
+  var urlEl2 = document.getElementById('sync-url');
+  var keyEl2 = document.getElementById('sync-key');
+  if (urlEl2 && syncCfg.url) urlEl2.value = syncCfg.url;
+  if (keyEl2 && syncCfg.key) keyEl2.value = syncCfg.key;
   var lbi=document.getElementById('last-backup-info');
   if(lbi){var ls2=localStorage.getItem('cnc_mkt_last_backup');lbi.textContent=ls2?'Last backup: '+new Date(ls2).toLocaleString():'No backup yet';}
   var addU=function(ids,tab){ids.forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('input',function(){markUnsaved(tab);});});};
@@ -5348,7 +5343,7 @@ class SyncController {
     AppView.toast("All data cleared");
     this.renderSummary();
   }
-  pushToSheets() { AppView.toast("Sync requires a server endpoint - configure in Settings."); }
+  pushToSheets() { syncToSheets(false); }
 }
 
 

@@ -8054,8 +8054,21 @@ class SyncController {
 class SettingsController {
   constructor(model) { this.model = model; }
 
-  open()    { openSettings(); }
-  close()   { closeSettings(); }
+  open() {
+    _settingsOpen = true;
+    var modal=document.getElementById('settings-modal');
+    var overlay=document.getElementById('settings-overlay');
+    if(modal)modal.classList.add('open');
+    if(overlay)overlay.style.display='block';
+    if(typeof loadSettingsPanel==='function')loadSettingsPanel();
+  }
+  close() {
+    _settingsOpen = false;
+    var modal=document.getElementById('settings-modal');
+    var overlay=document.getElementById('settings-overlay');
+    if(modal)modal.classList.remove('open');
+    if(overlay)overlay.style.display='none';
+  }
   load()    { loadSettingsPanel(); }
   apply()   { applySettings(); }
   save()    { saveAppSettings(); }
@@ -8297,8 +8310,21 @@ class AppController {
 // ── Bridge functions — all HTML onclick= attrs delegate here ──────
 function showTab(id)             { App.showTab(id); }
 // toggleSidebar defined in other script (deduped)
-function openSettings()          { App.settingsCtrl.open(); }
-function closeSettings()         { App.settingsCtrl.close(); }
+function openSettings() {
+  _settingsOpen = true;
+  var modal = document.getElementById('settings-modal');
+  var overlay = document.getElementById('settings-overlay');
+  if (modal) modal.classList.add('open');
+  if (overlay) overlay.style.display = 'block';
+  loadSettingsPanel();
+}
+function closeSettings() {
+  _settingsOpen = false;
+  var modal = document.getElementById('settings-modal');
+  var overlay = document.getElementById('settings-overlay');
+  if (modal) modal.classList.remove('open');
+  if (overlay) overlay.style.display = 'none';
+}
 function applySettings_bridge()  { App.settingsCtrl.apply(); }
 // saveAppSettings defined in other script (deduped)
 function setTheme_bridge(id)     { App.settingsCtrl.theme(id); }
@@ -8485,6 +8511,147 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 <!-- Version check -->
+
+<div id="settings-overlay" onclick="closeSettings()" style="display:none">
+<div id="settings-modal">
+  <div id="settings-panel">
+
+    <div class="s-head">
+      <h2>&#9881; Settings</h2>
+      <button class="s-close" onclick="closeSettings()">&#10005;</button>
+    </div>
+
+    <!-- APPEARANCE -->
+    <div class="s-section">
+      <div class="s-section-title">Appearance</div>
+      <div class="s-row" style="margin-bottom:12px">
+        <div class="s-row-info">
+          <div class="s-row-label">Dark mode</div>
+          <div class="s-row-sub">Dark background for all panels and cards</div>
+        </div>
+        <div class="s-row-ctrl">
+          <label class="sw"><input type="checkbox" id="set-dark-mode" onchange="applySettings()"><span class="sw-track"></span></label>
+        </div>
+      </div>
+      <div style="margin-bottom:8px">
+        <div class="s-row-label" style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px">Theme</div>
+        <div class="theme-grid" id="theme-grid"></div>
+      </div>
+      <div class="s-row">
+        <div class="s-row-info">
+          <div class="s-row-label">Show quick-add button (FAB)</div>
+          <div class="s-row-sub">The floating + button in the bottom-right corner</div>
+        </div>
+        <div class="s-row-ctrl">
+          <label class="sw"><input type="checkbox" id="set-show-fab" onchange="applySettings()" checked><span class="sw-track"></span></label>
+        </div>
+      </div>
+      <div class="s-row">
+        <div class="s-row-info">
+          <div class="s-row-label">Compact sidebar</div>
+          <div class="s-row-sub">Show icons only, hide labels</div>
+        </div>
+        <div class="s-row-ctrl">
+          <label class="sw"><input type="checkbox" id="set-compact-sidebar" onchange="applySettings()"><span class="sw-track"></span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLOUD SYNC -->
+    <div class="s-section">
+      <div class="s-section-title">Cloud Sync</div>
+      <div class="s-row" style="align-items:flex-start;padding-bottom:12px">
+        <div class="s-row-info">
+          <div class="s-row-label">Auto-sync on save</div>
+          <div class="s-row-sub">Push data to Google Sheets 2.5s after every save</div>
+        </div>
+        <div class="s-row-ctrl">
+          <label class="sw"><input type="checkbox" id="set-autosync" onchange="applySettings()" checked><span class="sw-track"></span></label>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label class="form-label">Apps Script URL</label>
+        <input class="form-input" id="set-sheets-url" placeholder="https://script.google.com/macros/s/..." style="margin-bottom:8px">
+        <label class="form-label">Sync Secret Key</label>
+        <input class="form-input" id="set-sheets-key" placeholder="Your secret key">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="sm-btn" onclick="saveSettingsSyncConfig()" style="background:var(--green);color:#fff;border-color:var(--green)">Save Config</button>
+        <button class="sm-btn" onclick="syncToSheets(false)">&#8645; Push to Sheets</button>
+        <button class="sm-btn" onclick="syncFromSheets()">&#8595; Pull from Sheets</button>
+      </div>
+      <div id="set-sync-msg" style="font-size:12px;min-height:14px;margin-top:8px"></div>
+      <div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px" id="set-sync-log"></div>
+    </div>
+
+    <!-- DATA & BACKUP -->
+    <div class="s-section">
+      <div class="s-section-title">Data &amp; Backup</div>
+      <div class="s-row">
+        <div class="s-row-info">
+          <div class="s-row-label">Export backup</div>
+          <div class="s-row-sub" id="set-last-backup">Last backup: Never</div>
+        </div>
+        <div class="s-row-ctrl">
+          <button class="sm-btn" onclick="exportBackup()">&#8595; Download</button>
+        </div>
+      </div>
+      <div class="s-row">
+        <div class="s-row-info">
+          <div class="s-row-label">Restore from backup</div>
+          <div class="s-row-sub">Replaces all current data</div>
+        </div>
+        <div class="s-row-ctrl">
+          <input type="file" id="set-restore-file" accept=".json" style="display:none" onchange="restoreBackup(this)">
+          <button class="sm-btn" onclick="document.getElementById('set-restore-file').click()">&#8593; Choose file</button>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <div class="s-row-label" style="font-size:12px;margin-bottom:6px">Storage used</div>
+        <div id="set-storage-bar" style="background:var(--bg);border-radius:99px;height:6px;overflow:hidden;margin-bottom:4px"><div id="set-storage-fill" style="height:6px;border-radius:99px;background:var(--green);width:0%;transition:width .4s"></div></div>
+        <div id="set-storage-label" style="font-size:11px;color:var(--muted)">Calculating...</div>
+      </div>
+    </div>
+
+    <!-- PREFERENCES -->
+    <div class="s-section">
+      <div class="s-section-title">Preferences</div>
+      <div class="s-row">
+        <div class="s-row-info">
+          <div class="s-row-label">Default year</div>
+          <div class="s-row-sub">Which year to show by default in reports</div>
+        </div>
+        <div class="s-row-ctrl">
+          <select class="form-input" id="set-default-year" onchange="applySettings()" style="width:90px;padding:5px 8px"></select>
+        </div>
+      </div>
+      <div class="s-row">
+        <div class="s-row-info">
+          <div class="s-row-label">Business name</div>
+          <div class="s-row-sub">Shown in the header</div>
+        </div>
+        <div class="s-row-ctrl">
+          <input class="form-input" id="set-biz-name" placeholder="Clear-N-Carry" style="width:140px;padding:5px 8px" onchange="applySettings()">
+        </div>
+      </div>
+    </div>
+
+    <!-- DANGER ZONE -->
+    <div class="s-section">
+      <div class="s-section-title" style="color:var(--red)">Danger Zone</div>
+      <div class="s-row">
+        <div class="s-row-info">
+          <div class="s-row-label">Clear all data</div>
+          <div class="s-row-sub">Permanently deletes everything. Export a backup first.</div>
+        </div>
+        <div class="s-row-ctrl">
+          <button class="sm-btn danger" onclick="clearAllData()">Clear all</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+<
 <script>
 // ================================================================
 // VERSION CHECK — auto-update banner
